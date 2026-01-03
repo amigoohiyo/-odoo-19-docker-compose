@@ -1,0 +1,47 @@
+services:
+  db:
+    # 【修改1】换成 15-alpine，极其省内存
+    image: postgres:15-alpine
+    user: root
+    environment:
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo19@2025
+      - POSTGRES_DB=postgres
+    restart: always
+    volumes:
+      # 【修改2】改回标准数据路径
+      - ./postgresql:/var/lib/postgresql/data
+    # 【修改3】加上数据库内存锁 (256MB)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+
+  odoo19:
+    # 注意：Odoo 19 正式版可能叫 odoo:latest 或 odoo:master，如果 pull 不到 19 请改一下
+    image: odoo:19
+    user: root
+    depends_on:
+      - db
+    ports:
+      - "10019:8069"
+      - "20019:8072"
+    tty: true
+    command: --
+    environment:
+      - HOST=db
+      - USER=odoo
+      - PASSWORD=odoo19@2025
+      - PIP_BREAK_SYSTEM_PACKAGES=1
+    volumes:
+      - ./entrypoint.sh:/entrypoint.sh
+      - ./addons:/mnt/extra-addons
+      - ./etc:/etc/odoo
+    restart: always
+    # 【修改4】加上 Odoo 内存锁 (640MB)
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 640M
